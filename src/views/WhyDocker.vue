@@ -247,7 +247,7 @@ const facts = [
   font-size: 9px;
   color: var(--text3);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0;
   white-space: nowrap;
 }
 .impact-bar {
@@ -294,7 +294,7 @@ const facts = [
   padding: 3px 10px;
   border-radius: 20px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0;
 }
 .scenario-badge.red { background: rgba(244,71,71,0.12); color: var(--red); border: 1px solid rgba(244,71,71,0.2); }
 .scenario-badge.green { background: rgba(0,232,135,0.12); color: var(--green); border: 1px solid rgba(0,232,135,0.2); }

@@ -270,7 +270,7 @@ const instructions = [
   font-size: 10px;
   color: var(--text3);
   writing-mode: vertical-rl;
-  letter-spacing: 2px;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -311,7 +311,7 @@ const instructions = [
   padding: 2px 6px;
   border-radius: 4px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0;
   flex-shrink: 0;
   margin-top: 2px;
 }

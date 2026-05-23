@@ -308,7 +308,7 @@ const composeCmds = [
   font-weight: 700;
   color: var(--text3);
   writing-mode: vertical-rl;
-  letter-spacing: 3px;
+  letter-spacing: 0;
 }
 .comp-issues, .comp-benefits {
   display: flex;
@@ -369,7 +369,7 @@ const composeCmds = [
 @media (max-width: 700px) {
   .comparison { grid-template-columns: 1fr; }
   .comp-sep { padding: 12px 24px; }
-  .sep-vs { writing-mode: horizontal-tb; letter-spacing: normal; }
+  .sep-vs { writing-mode: horizontal-tb; letter-spacing: 0; }
   .explain-item { flex-direction: column; }
   .explain-key { min-width: unset; }
   .env-grid { grid-template-columns: 1fr; }

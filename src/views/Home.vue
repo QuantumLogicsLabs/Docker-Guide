@@ -30,6 +30,48 @@
       </div>
     </div>
 
+    <!-- Learning Dashboard -->
+    <div class="section">
+      <div class="section-title">Personal Learning Dashboard</div>
+      <div class="dashboard-grid">
+        <div class="focus-panel">
+          <div class="panel-top">
+            <span class="panel-label">Recommended next</span>
+            <strong>{{ activeTrack.title }}</strong>
+          </div>
+          <p>{{ activeTrack.desc }}</p>
+          <div class="track-tabs">
+            <button
+              v-for="track in tracks"
+              :key="track.id"
+              class="track-tab"
+              :class="{ active: selectedTrack === track.id }"
+              @click="selectedTrack = track.id"
+            >
+              {{ track.label }}
+            </button>
+          </div>
+          <div class="track-list">
+            <router-link v-for="item in activeTrack.items" :key="item.path" :to="item.path" class="track-item">
+              <span>{{ item.step }}</span>
+              <strong>{{ item.title }}</strong>
+              <small>{{ item.time }}</small>
+            </router-link>
+          </div>
+        </div>
+        <div class="checklist-panel">
+          <div class="panel-top">
+            <span class="panel-label">Launch checklist</span>
+            <strong>{{ doneCount }} / {{ checklist.length }} done</strong>
+          </div>
+          <label v-for="item in checklist" :key="item.id" class="check-row">
+            <input v-model="checkedItems" :value="item.id" type="checkbox" />
+            <span>{{ item.text }}</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
     <!-- Chapter Cards -->
     <div class="section">
       <div class="section-title">Course Chapters</div>
@@ -130,12 +172,67 @@
 </template>
 
 <script setup>
+import { computed, ref, watch } from 'vue'
+
 const stats = [
   { num: '6', label: 'Chapters' },
   { num: '50+', label: 'Commands' },
   { num: '10+', label: 'Code Examples' },
   { num: '1hr', label: 'Read Time' },
 ]
+
+const selectedTrack = ref(localStorage.getItem('dockermaster-track') || 'fast')
+const checkedItems = ref(JSON.parse(localStorage.getItem('dockermaster-checklist') || '[]'))
+
+const tracks = [
+  {
+    id: 'fast',
+    label: 'Fast path',
+    title: 'Ship a working container today',
+    desc: 'A short route for developers who want enough Docker to build, run, and debug a Node app quickly.',
+    items: [
+      { step: '01', title: 'Build the mental model', path: '/what-is-docker', time: '8 min' },
+      { step: '02', title: 'Convert npm scripts', path: '/converting', time: '18 min' },
+      { step: '03', title: 'Keep commands nearby', path: '/commands', time: 'Reference' },
+    ],
+  },
+  {
+    id: 'team',
+    label: 'Team setup',
+    title: 'Standardize a full-stack workflow',
+    desc: 'Best when you are preparing a repeatable dev environment for teammates or onboarding.',
+    items: [
+      { step: '01', title: 'Understand why Docker helps', path: '/why-docker', time: '10 min' },
+      { step: '02', title: 'Compose the stack', path: '/compose', time: '16 min' },
+      { step: '03', title: 'Debug with the CLI', path: '/commands', time: 'Reference' },
+    ],
+  },
+  {
+    id: 'prod',
+    label: 'Production',
+    title: 'Harden images for deployment',
+    desc: 'A focused route through caching, multi-stage builds, environment files, and deployment-safe commands.',
+    items: [
+      { step: '01', title: 'Review Docker benefits', path: '/why-docker', time: '10 min' },
+      { step: '02', title: 'Use production Dockerfiles', path: '/converting', time: '20 min' },
+      { step: '03', title: 'Compose with env files', path: '/compose', time: '16 min' },
+    ],
+  },
+]
+
+const checklist = [
+  { id: 'dockerfile', text: 'Create a Dockerfile for the backend' },
+  { id: 'ignore', text: 'Add .dockerignore before the first build' },
+  { id: 'compose', text: 'Wire services with docker-compose.yml' },
+  { id: 'env', text: 'Move secrets into .env and commit .env.example' },
+  { id: 'debug', text: 'Practice logs, exec, inspect, and stats commands' },
+]
+
+const activeTrack = computed(() => tracks.find((track) => track.id === selectedTrack.value) || tracks[0])
+const doneCount = computed(() => checkedItems.value.length)
+
+watch(selectedTrack, (value) => localStorage.setItem('dockermaster-track', value))
+watch(checkedItems, (value) => localStorage.setItem('dockermaster-checklist', JSON.stringify(value)))
 
 const cards = [
   {
@@ -229,7 +326,7 @@ const techStack = [
   padding: 5px 14px;
   border-radius: 20px;
   margin-bottom: 24px;
-  letter-spacing: 0.3px;
+  letter-spacing: 0;
 }
 .eyebrow-dot {
   width: 7px; height: 7px;
@@ -247,7 +344,7 @@ const techStack = [
   font-size: clamp(38px, 6vw, 64px);
   font-weight: 700;
   line-height: 1.0;
-  letter-spacing: -2px;
+  letter-spacing: 0;
   color: var(--text);
   margin-bottom: 20px;
 }
@@ -335,7 +432,7 @@ const techStack = [
   color: var(--text3);
   font-family: var(--font-mono);
   text-transform: uppercase;
-  letter-spacing: 0.8px;
+  letter-spacing: 0;
   margin-top: 2px;
 }
 
@@ -420,7 +517,7 @@ const techStack = [
   font-size: 11px;
   font-weight: 700;
   font-family: var(--font-mono);
-  letter-spacing: 0.5px;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 .pv-badge.red { background: rgba(244,71,71,0.12); color: var(--red); border: 1px solid rgba(244,71,71,0.25); }
@@ -452,7 +549,7 @@ const techStack = [
   font-weight: 700;
   color: var(--text3);
   writing-mode: vertical-rl;
-  letter-spacing: 3px;
+  letter-spacing: 0;
 }
 
 /* Steps */
@@ -490,7 +587,7 @@ const techStack = [
   font-weight: 700;
   color: var(--text);
   margin-bottom: 6px;
-  letter-spacing: -0.3px;
+  letter-spacing: 0;
 }
 .step-desc { font-size: 14px; color: var(--text2); line-height: 1.65; }
 
@@ -518,7 +615,97 @@ const techStack = [
 .tech-icon { font-size: 16px; }
 .tech-name { font-family: var(--font-mono); }
 
+/* Learning Dashboard */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+  gap: 16px;
+  margin-top: 24px;
+}
+.focus-panel,
+.checklist-panel {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.panel-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.panel-label {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+.track-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 18px 0;
+}
+.track-tab {
+  border: 1px solid var(--border);
+  background: var(--bg3);
+  color: var(--text2);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+}
+.track-tab.active {
+  color: #061016;
+  background: var(--green);
+  border-color: var(--green);
+}
+.track-list {
+  display: grid;
+  gap: 8px;
+}
+.track-item {
+  display: grid;
+  grid-template-columns: 42px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  text-decoration: none;
+  color: var(--text2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  background: var(--bg3);
+}
+.track-item:hover { border-color: var(--accent); color: var(--text); }
+.track-item span,
+.track-item small {
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.track-item strong { color: var(--text); }
+.check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 0;
+  border-top: 1px solid var(--border);
+  color: var(--text2);
+  font-size: 13px;
+}
+.check-row input {
+  margin-top: 3px;
+  accent-color: var(--green);
+}
+
 @media (max-width: 700px) {
+  .dashboard-grid { grid-template-columns: 1fr; }
+  .track-item { grid-template-columns: 38px 1fr; }
+  .track-item small { grid-column: 2; }
   .problem-vs { grid-template-columns: 1fr; }
   .pv-divider { writing-mode: horizontal-tb; padding: 12px 24px; }
   .stats-bar { width: 100%; }

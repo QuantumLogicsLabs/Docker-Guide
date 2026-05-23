@@ -6,8 +6,15 @@
       <p class="page-desc">Every Docker command you'll need as a Node.js developer — organized by category with real examples, tags, and copy functionality.</p>
     </div>
 
+    <div class="cmd-insights">
+      <div v-for="stat in commandStats" :key="stat.label" class="insight">
+        <strong>{{ stat.value }}</strong>
+        <span>{{ stat.label }}</span>
+      </div>
+    </div>
+
     <!-- Search -->
-    <div class="search-bar">
+    <div class="search-bar command-toolbar">
       <div class="search-input-wrap">
         <svg class="search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
           <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/>
@@ -23,6 +30,20 @@
       </div>
       <div class="search-results" v-if="search">
         {{ totalFiltered }} command{{ totalFiltered !== 1 ? 's' : '' }} found
+      </div>
+      <div class="toolbar-actions">
+        <button class="tool-toggle" :class="{ active: showFavorites }" @click="showFavorites = !showFavorites">
+          Favorites
+        </button>
+        <select v-model="sortMode" class="tool-select" aria-label="Sort commands">
+          <option value="grouped">Grouped</option>
+          <option value="az">A to Z</option>
+          <option value="tag">By tag</option>
+        </select>
+        <div class="segmented">
+          <button :class="{ active: viewMode === 'comfortable' }" @click="viewMode = 'comfortable'">Comfort</button>
+          <button :class="{ active: viewMode === 'dense' }" @click="viewMode = 'dense'">Dense</button>
+        </div>
       </div>
     </div>
 
@@ -48,12 +69,18 @@
           class="cmd-card"
           v-for="cmd in group.commands"
           :key="cmd.cmd"
-          :class="{ 'cmd-copied': copiedCmd === cmd.cmd }"
+          :class="{ 'cmd-copied': copiedCmd === (cmd.example || cmd.cmd), dense: viewMode === 'dense' }"
         >
           <div class="cmd-top">
             <div class="cmd-name">{{ cmd.cmd }}</div>
             <div class="cmd-right">
               <span class="tag-pill" :class="tagColor(cmd.tag)">{{ cmd.tag }}</span>
+              <button class="icon-btn" :class="{ active: favoriteIds.includes(cmd.cmd) }" @click="toggleFavorite(cmd.cmd)" title="Save favorite">
+                {{ favoriteIds.includes(cmd.cmd) ? '★' : '☆' }}
+              </button>
+              <button class="icon-btn" @click="expandedCmd = expandedCmd === cmd.cmd ? '' : cmd.cmd" title="Toggle details">
+                {{ expandedCmd === cmd.cmd ? '−' : '+' }}
+              </button>
               <button class="copy-btn" @click="copyCmd(cmd.example || cmd.cmd)" :title="'Copy command'">
                 <span v-if="copiedCmd === (cmd.example || cmd.cmd)">✓</span>
                 <span v-else>⧉</span>
@@ -61,6 +88,10 @@
             </div>
           </div>
           <div class="cmd-desc">{{ cmd.desc }}</div>
+          <div v-if="expandedCmd === cmd.cmd" class="cmd-details">
+            <span>Use when: {{ cmd.useCase || commandScopeLabel(cmd.tag) }}</span>
+            <span>Risk: {{ cmd.tag === 'cleanup' ? 'Can delete local resources' : 'Safe for normal development' }}</span>
+          </div>
           <div class="code-block cmd-example" v-if="cmd.example">
             <div class="code-header">
               <div class="code-dots"><span></span><span></span><span></span></div>
@@ -94,6 +125,16 @@
       </div>
     </div>
 
+    <div class="section" v-if="recentCopies.length">
+      <div class="section-title">Recently Copied</div>
+      <div class="recent-list">
+        <button v-for="cmd in recentCopies" :key="cmd" class="recent-item" @click="copyCmd(cmd)">
+          <code>{{ cmd }}</code>
+          <span>Copy again</span>
+        </button>
+      </div>
+    </div>
+
     <div class="nav-footer">
       <router-link to="/compose" class="nav-prev">← Docker Compose</router-link>
       <router-link to="/" class="nav-next">Back to Start →</router-link>
@@ -102,11 +143,17 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 
 const search = ref('')
 const activeTag = ref('all')
 const copiedCmd = ref('')
+const expandedCmd = ref('')
+const showFavorites = ref(false)
+const sortMode = ref(localStorage.getItem('dockermaster-command-sort') || 'grouped')
+const viewMode = ref(localStorage.getItem('dockermaster-command-view') || 'comfortable')
+const favoriteIds = ref(JSON.parse(localStorage.getItem('dockermaster-command-favorites') || '[]'))
+const recentCopies = ref(JSON.parse(localStorage.getItem('dockermaster-recent-copies') || '[]'))
 
 const allTags = [
   { id: 'all', label: 'All', color: 'gray' },
@@ -179,25 +226,66 @@ const filteredGroups = computed(() => {
   const q = search.value.toLowerCase()
   const tag = activeTag.value
 
-  return groups.map(g => ({
+  const mapped = groups.map(g => ({
     ...g,
     commands: g.commands.filter(c => {
       const matchesSearch = !q || c.cmd.toLowerCase().includes(q) || c.desc.toLowerCase().includes(q) || (c.example && c.example.toLowerCase().includes(q))
       const matchesTag = tag === 'all' || c.tag === tag
-      return matchesSearch && matchesTag
+      const matchesFavorite = !showFavorites.value || favoriteIds.value.includes(c.cmd)
+      return matchesSearch && matchesTag && matchesFavorite
     })
   })).filter(g => g.commands.length > 0)
+
+  if (sortMode.value === 'grouped') return mapped
+
+  const sorted = mapped
+    .flatMap(g => g.commands.map(command => ({ ...command, groupTitle: g.title, groupIcon: g.icon })))
+    .sort((a, b) => {
+      if (sortMode.value === 'tag') return a.tag.localeCompare(b.tag) || a.cmd.localeCompare(b.cmd)
+      return a.cmd.localeCompare(b.cmd)
+    })
+
+  return [{ icon: sortMode.value === 'tag' ? '🏷️' : '↕', title: sortMode.value === 'tag' ? 'Sorted by Tag' : 'Sorted A to Z', commands: sorted }]
 })
 
 const totalFiltered = computed(() => filteredGroups.value.reduce((sum, g) => sum + g.commands.length, 0))
+const totalCommands = computed(() => groups.reduce((sum, group) => sum + group.commands.length, 0))
+const commandStats = computed(() => [
+  { label: 'Commands', value: totalCommands.value },
+  { label: 'Categories', value: groups.length },
+  { label: 'Favorites', value: favoriteIds.value.length },
+  { label: 'Visible', value: totalFiltered.value },
+])
+
+const commandScopeLabel = (tag) => {
+  const labels = {
+    essential: 'daily build, run, and inspect workflows',
+    debug: 'finding logs, shelling into containers, and inspecting state',
+    cleanup: 'freeing disk space after experiments',
+    deploy: 'preparing images for a registry or release',
+  }
+  return labels[tag] || 'general Docker workflow'
+}
+
+const toggleFavorite = (cmd) => {
+  favoriteIds.value = favoriteIds.value.includes(cmd)
+    ? favoriteIds.value.filter(item => item !== cmd)
+    : [...favoriteIds.value, cmd]
+}
 
 const copyCmd = async (cmd) => {
   try {
     await navigator.clipboard.writeText(cmd)
     copiedCmd.value = cmd
+    recentCopies.value = [cmd, ...recentCopies.value.filter(item => item !== cmd)].slice(0, 6)
     setTimeout(() => { copiedCmd.value = '' }, 1500)
   } catch (e) {}
 }
+
+watch(sortMode, (value) => localStorage.setItem('dockermaster-command-sort', value))
+watch(viewMode, (value) => localStorage.setItem('dockermaster-command-view', value))
+watch(favoriteIds, (value) => localStorage.setItem('dockermaster-command-favorites', JSON.stringify(value)))
+watch(recentCopies, (value) => localStorage.setItem('dockermaster-recent-copies', JSON.stringify(value)))
 
 const cheatsheet = [
   {
@@ -244,8 +332,41 @@ const cheatsheet = [
 </script>
 
 <style scoped>
+/* Insights */
+.cmd-insights {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: -14px 0 28px;
+}
+.insight {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+.insight strong {
+  display: block;
+  color: var(--text);
+  font-size: 22px;
+  line-height: 1;
+}
+.insight span {
+  display: block;
+  margin-top: 6px;
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
 /* Search */
 .search-bar { margin-bottom: 20px; }
+.command-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 14px;
+}
 .search-input-wrap {
   position: relative;
   display: flex;
@@ -290,6 +411,42 @@ const cheatsheet = [
   color: var(--text3);
   font-family: var(--font-mono);
   padding: 0 4px;
+}
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.tool-toggle,
+.tool-select,
+.segmented button {
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  color: var(--text2);
+  border-radius: var(--radius);
+  padding: 9px 11px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+}
+.tool-select { outline: none; }
+.tool-toggle.active,
+.segmented button.active {
+  background: rgba(32,199,232,0.12);
+  color: var(--accent);
+  border-color: rgba(32,199,232,0.32);
+}
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.segmented button {
+  border: 0;
+  border-radius: 0;
 }
 
 /* Filter Bar */
@@ -339,6 +496,13 @@ const cheatsheet = [
 }
 .cmd-card:hover { border-color: var(--border2); }
 .cmd-card.cmd-copied { border-color: var(--green); }
+.cmd-card.dense {
+  padding: 12px 14px;
+}
+.cmd-card.dense .cmd-desc,
+.cmd-card.dense .cmd-example {
+  display: none;
+}
 .cmd-top {
   display: flex;
   align-items: center;
@@ -369,6 +533,35 @@ const cheatsheet = [
   line-height: 1;
 }
 .copy-btn:hover { background: var(--bg3); color: var(--text); }
+.icon-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  background: var(--bg3);
+  color: var(--text3);
+  border-radius: var(--radius);
+  cursor: pointer;
+  line-height: 1;
+}
+.icon-btn:hover,
+.icon-btn.active {
+  color: var(--yellow);
+  border-color: rgba(242,206,91,0.35);
+}
+.cmd-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0;
+}
+.cmd-details span {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text2);
+  font-size: 12px;
+  padding: 9px 10px;
+}
 
 /* No Results */
 .no-results {
@@ -442,14 +635,54 @@ const cheatsheet = [
   padding: 0;
 }
 .cs-item span { font-size: 11px; color: var(--text3); }
+.recent-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 16px;
+}
+.recent-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  color: var(--text2);
+  border-radius: var(--radius);
+  padding: 12px;
+  cursor: pointer;
+  text-align: left;
+}
+.recent-item:hover { border-color: var(--accent); }
+.recent-item code {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recent-item span {
+  flex-shrink: 0;
+  color: var(--text3);
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
 
 @media (max-width: 900px) {
+  .cmd-insights { grid-template-columns: repeat(2, 1fr); }
+  .command-toolbar { grid-template-columns: 1fr; }
+  .toolbar-actions { justify-content: flex-start; }
   .cheatsheet { grid-template-columns: repeat(2, 1fr); }
   .cs-col:nth-child(2) { border-right: none; }
   .cs-col:nth-child(3) { border-top: 1px solid var(--border); }
   .cs-col:nth-child(4) { border-top: 1px solid var(--border); }
 }
 @media (max-width: 600px) {
+  .cmd-insights,
+  .cmd-details,
+  .recent-list { grid-template-columns: 1fr; }
+  .cmd-top { align-items: flex-start; flex-direction: column; }
+  .cmd-right { flex-wrap: wrap; }
   .cheatsheet { grid-template-columns: 1fr; }
   .cs-col { border-right: none; border-top: 1px solid var(--border); }
   .cs-col:first-child { border-top: none; }
