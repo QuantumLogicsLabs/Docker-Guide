@@ -445,11 +445,27 @@ const instructions = [
 
 @media (max-width: 700px) {
   .concepts-grid { grid-template-columns: 1fr; }
-  .ct-head, .ct-row { grid-template-columns: 0.8fr 1fr 1fr; }
+  .compare-table { overflow-x: auto; }
+  .ct-head, .ct-row { grid-template-columns: 120px 150px 150px; min-width: 420px; }
   .instruction-grid { grid-template-columns: 1fr; }
   .analogy-box { grid-template-columns: 1fr; }
   .analogy-arrow { writing-mode: horizontal-tb; padding: 12px 24px; }
   .arrow-label { writing-mode: horizontal-tb; }
   .arrow-line { width: 32px; height: 1px; }
+}
+
+@media (max-width: 520px) {
+  .analogy-col,
+  .arch-layer { padding: 18px; }
+  .concept-card { padding: 16px; }
+  .concept-header { align-items: flex-start; }
+  .arch-layer-title { align-items: flex-start; font-size: 15px; }
+  .arch-connector { padding: 0 8px; }
+  .arch-conn-label { white-space: normal; text-align: center; }
+  .lifecycle { display: grid; grid-template-columns: 1fr; gap: 10px; padding: 16px; overflow-x: visible; }
+  .lc-step { display: grid; grid-template-columns: 1fr; justify-items: center; gap: 8px; }
+  .lc-arrow { transform: rotate(90deg); padding: 2px 0; }
+  .lc-body { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg3); }
+  .instruction-item { flex-direction: column; gap: 8px; padding: 14px; }
 }
 </style>

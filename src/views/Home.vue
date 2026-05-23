@@ -407,6 +407,7 @@ const techStack = [
 
 .stats-bar {
   display: flex;
+  flex-wrap: wrap;
   gap: 0;
   background: var(--bg3);
   border: 1px solid var(--border);
@@ -704,12 +705,39 @@ const techStack = [
 
 @media (max-width: 700px) {
   .dashboard-grid { grid-template-columns: 1fr; }
+  .panel-top { align-items: flex-start; flex-direction: column; }
   .track-item { grid-template-columns: 38px 1fr; }
   .track-item small { grid-column: 2; }
   .problem-vs { grid-template-columns: 1fr; }
   .pv-divider { writing-mode: horizontal-tb; padding: 12px 24px; }
   .stats-bar { width: 100%; }
-  .stat-item { flex: 1; padding: 12px 16px; }
+  .stat-item { flex: 1 1 50%; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .stat-item:nth-child(2n) { border-right: none; }
   .card-tags { display: none; }
+}
+
+@media (max-width: 560px) {
+  .hero { margin-bottom: 42px; padding-bottom: 34px; }
+  .hero-title { font-size: 36px; line-height: 1.08; }
+  .hero-desc { font-size: 15px; }
+  .hero-cta { align-items: stretch; flex-direction: column; }
+  .cta-primary,
+  .cta-secondary { justify-content: center; width: 100%; }
+  .chapter-card { align-items: flex-start; flex-wrap: wrap; gap: 12px; padding: 16px; }
+  .card-body { flex-basis: calc(100% - 64px); }
+  .card-desc { white-space: normal; }
+  .card-arrow { margin-left: auto; }
+  .pv-side { padding: 20px 18px; }
+  .step { gap: 14px; padding-bottom: 28px; }
+  .step-num { width: 34px; height: 34px; min-width: 34px; }
+  .step:not(:last-child)::before { left: 16px; top: 40px; }
+  .tech-card { flex: 1 1 calc(50% - 8px); justify-content: center; }
+}
+
+@media (max-width: 390px) {
+  .hero-title { font-size: 32px; }
+  .stat-item { flex-basis: 100%; border-right: none; }
+  .track-tabs { display: grid; grid-template-columns: 1fr; }
+  .tech-card { flex-basis: 100%; }
 }
 </style>

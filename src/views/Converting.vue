@@ -357,4 +357,14 @@ const buildCmds = [
 @media (max-width: 700px) {
   .dockerignore-grid { grid-template-columns: 1fr; }
 }
+
+@media (max-width: 520px) {
+  .tab-group { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+  .tab-btn { padding: 8px 10px; }
+  .dockerignore-impact { padding: 18px; }
+  .impact-item { align-items: flex-start; width: 100%; }
+  .impact-arrow { transform: rotate(90deg); }
+  .impact-val { font-size: 16px; }
+  .command-item .code-body { padding: 10px 12px !important; }
+}
 </style>

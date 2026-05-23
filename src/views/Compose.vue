@@ -375,4 +375,14 @@ const composeCmds = [
   .env-grid { grid-template-columns: 1fr; }
   .compose-cmd { flex-direction: column; align-items: flex-start; }
 }
+
+@media (max-width: 520px) {
+  .comp-col { padding: 16px; }
+  .comp-header { align-items: flex-start; flex-direction: column; gap: 8px; }
+  .explain-item { gap: 8px; padding: 14px; }
+  .explain-key code,
+  .cc-code code { overflow-wrap: anywhere; }
+  .compose-cmd { padding: 14px; }
+  .compose-cmd .tag-pill { margin-right: 0; }
+}
 </style>

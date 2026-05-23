@@ -415,4 +415,19 @@ const facts = [
   .sep-line { height: 1px; width: auto; flex: 1; }
   .sep-arrow { transform: rotate(0deg); }
 }
+
+@media (max-width: 520px) {
+  .benefit-card,
+  .wf-card,
+  .user-card { padding: 16px; }
+  .scenario-before,
+  .scenario-after { padding: 16px; }
+  .facts-row { grid-template-columns: 1fr; }
+  .fact-card,
+  .fact-card:nth-child(2),
+  .fact-card:nth-child(3),
+  .fact-card:nth-child(4) { border-right: none; border-top: 1px solid var(--border); }
+  .fact-card:first-child { border-top: none; }
+  .user-card { gap: 10px; }
+}
 </style>

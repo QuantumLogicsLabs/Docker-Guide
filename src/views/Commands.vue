@@ -411,6 +411,7 @@ const cheatsheet = [
   color: var(--text3);
   font-family: var(--font-mono);
   padding: 0 4px;
+  grid-column: 1;
 }
 .toolbar-actions {
   display: flex;
@@ -418,6 +419,8 @@ const cheatsheet = [
   gap: 8px;
   flex-wrap: wrap;
   justify-content: flex-end;
+  grid-column: 2;
+  grid-row: 1 / span 2;
 }
 .tool-toggle,
 .tool-select,
@@ -516,6 +519,8 @@ const cheatsheet = [
   font-weight: 700;
   color: var(--accent);
   flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .cmd-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .cmd-desc { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 10px; }
@@ -671,6 +676,8 @@ const cheatsheet = [
 @media (max-width: 900px) {
   .cmd-insights { grid-template-columns: repeat(2, 1fr); }
   .command-toolbar { grid-template-columns: 1fr; }
+  .search-results,
+  .toolbar-actions { grid-column: 1; grid-row: auto; }
   .toolbar-actions { justify-content: flex-start; }
   .cheatsheet { grid-template-columns: repeat(2, 1fr); }
   .cs-col:nth-child(2) { border-right: none; }
@@ -681,8 +688,18 @@ const cheatsheet = [
   .cmd-insights,
   .cmd-details,
   .recent-list { grid-template-columns: 1fr; }
+  .cmd-insights { gap: 8px; }
+  .insight { padding: 12px; }
+  .toolbar-actions { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+  .tool-toggle,
+  .tool-select,
+  .segmented { width: 100%; }
+  .segmented { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; }
   .cmd-top { align-items: flex-start; flex-direction: column; }
-  .cmd-right { flex-wrap: wrap; }
+  .cmd-right { flex-wrap: wrap; width: 100%; }
+  .cmd-card { padding: 14px; }
+  .cmd-name { font-size: 12.5px; }
+  .cmd-example .code-body { padding: 10px 12px !important; }
   .cheatsheet { grid-template-columns: 1fr; }
   .cs-col { border-right: none; border-top: 1px solid var(--border); }
   .cs-col:first-child { border-top: none; }
