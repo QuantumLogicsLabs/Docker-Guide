@@ -1,0 +1,12 @@
+/node_modules
+/dist
+/build
+/.env
+node_modules/
+dist/
+build/
+.env
+# make-folder-txt
+.txtconfig
+.txtignore
+docker-guide-website.txt
