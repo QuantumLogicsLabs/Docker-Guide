@@ -72,6 +72,74 @@
       </div>
     </div>
 
+    <!-- Stack Builder -->
+    <div class="section">
+      <div class="section-title">Starter Kit Builder</div>
+      <div class="section-sub">Pick a stack and generate a local-ready compose file instantly</div>
+      <div class="builder-grid">
+        <div class="builder-panel">
+          <div class="panel-top">
+            <span class="panel-label">Project profile</span>
+            <strong>{{ selectedServices.length }} services</strong>
+          </div>
+
+          <div class="builder-field">
+            <label for="projectName">Project name</label>
+            <input id="projectName" v-model.trim="projectName" type="text" placeholder="my-node-app" />
+          </div>
+
+          <div class="builder-field split">
+            <div>
+              <label for="packageManager">Package manager</label>
+              <select id="packageManager" v-model="packageManager">
+                <option value="npm">npm</option>
+                <option value="pnpm">pnpm</option>
+                <option value="yarn">yarn</option>
+              </select>
+            </div>
+            <div>
+              <label for="backendPort">Backend port</label>
+              <input id="backendPort" v-model.number="backendPort" type="number" min="1000" max="9999" />
+            </div>
+          </div>
+
+          <div class="service-picker" role="group" aria-label="Choose services">
+            <button
+              v-for="service in stackOptions"
+              :key="service.id"
+              class="service-chip"
+              :class="{ active: selectedServices.includes(service.id) }"
+              @click="toggleService(service.id)"
+            >
+              <span>{{ service.icon }}</span>
+              <strong>{{ service.label }}</strong>
+              <small>{{ service.note }}</small>
+            </button>
+          </div>
+
+          <div class="builder-summary">
+            <div v-for="item in builderSummary" :key="item.label">
+              <span>{{ item.label }}</span>
+              <strong>{{ item.value }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="builder-preview">
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-dots"><span></span><span></span><span></span></div>
+              <span class="code-filename">docker-compose.yml</span>
+              <button class="copy-code-btn" @click="copyGeneratedCompose">
+                {{ copiedCompose ? 'Copied' : 'Copy' }}
+              </button>
+            </div>
+            <div class="code-body"><pre>{{ generatedCompose }}</pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Chapter Cards -->
     <div class="section">
       <div class="section-title">Course Chapters</div>
@@ -183,6 +251,11 @@ const stats = [
 
 const selectedTrack = ref(localStorage.getItem('dockermaster-track') || 'fast')
 const checkedItems = ref(JSON.parse(localStorage.getItem('dockermaster-checklist') || '[]'))
+const projectName = ref(localStorage.getItem('dockermaster-project-name') || 'node-docker-app')
+const packageManager = ref(localStorage.getItem('dockermaster-package-manager') || 'npm')
+const backendPort = ref(Number(localStorage.getItem('dockermaster-backend-port')) || 5000)
+const selectedServices = ref(JSON.parse(localStorage.getItem('dockermaster-stack-services') || '["backend","frontend","mongo"]'))
+const copiedCompose = ref(false)
 
 const tracks = [
   {
@@ -231,8 +304,142 @@ const checklist = [
 const activeTrack = computed(() => tracks.find((track) => track.id === selectedTrack.value) || tracks[0])
 const doneCount = computed(() => checkedItems.value.length)
 
+const stackOptions = [
+  { id: 'backend', icon: '🟢', label: 'Node API', note: 'Express backend' },
+  { id: 'frontend', icon: '⚡', label: 'Vite UI', note: 'Vue or React' },
+  { id: 'mongo', icon: '🍃', label: 'MongoDB', note: 'Document data' },
+  { id: 'postgres', icon: '🐘', label: 'Postgres', note: 'Relational data' },
+  { id: 'redis', icon: '🔴', label: 'Redis', note: 'Cache and queues' },
+]
+
+const safeProjectName = computed(() => {
+  const name = projectName.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-|-$/g, '')
+  return name || 'node-docker-app'
+})
+
+const packageCommand = computed(() => {
+  const map = {
+    npm: 'npm run dev',
+    pnpm: 'pnpm dev',
+    yarn: 'yarn dev',
+  }
+  return map[packageManager.value] || map.npm
+})
+
+const builderSummary = computed(() => [
+  { label: 'Network', value: `${safeProjectName.value}-net` },
+  { label: 'Hot reload', value: selectedServices.value.includes('backend') || selectedServices.value.includes('frontend') ? 'Enabled' : 'No app service' },
+  { label: 'Data layer', value: selectedServices.value.filter((id) => ['mongo', 'postgres', 'redis'].includes(id)).length || 'None' },
+])
+
+const generatedCompose = computed(() => {
+  const services = []
+
+  if (selectedServices.value.includes('backend')) {
+    services.push(`  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    command: ${packageCommand.value}
+    ports:
+      - "${backendPort.value || 5000}:${backendPort.value || 5000}"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: development
+      PORT: ${backendPort.value || 5000}
+    networks:
+      - app-network`)
+  }
+
+  if (selectedServices.value.includes('frontend')) {
+    services.push(`  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    command: ${packageCommand.value}
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - app-network`)
+  }
+
+  if (selectedServices.value.includes('mongo')) {
+    services.push(`  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - app-network`)
+  }
+
+  if (selectedServices.value.includes('postgres')) {
+    services.push(`  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: ${safeProjectName.value.replaceAll('-', '_')}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network`)
+  }
+
+  if (selectedServices.value.includes('redis')) {
+    services.push(`  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network`)
+  }
+
+  const volumes = [
+    selectedServices.value.includes('mongo') ? '  mongo_data:' : '',
+    selectedServices.value.includes('postgres') ? '  postgres_data:' : '',
+  ].filter(Boolean).join('\n')
+
+  return `name: ${safeProjectName.value}
+
+services:
+${services.length ? services.join('\n\n') : '  scratch:\n    image: alpine\n    command: ["echo", "Choose at least one service"]'}
+
+${volumes ? `volumes:\n${volumes}\n\n` : ''}networks:
+  app-network:
+    name: ${safeProjectName.value}-net`
+})
+
+const toggleService = (id) => {
+  selectedServices.value = selectedServices.value.includes(id)
+    ? selectedServices.value.filter((service) => service !== id)
+    : [...selectedServices.value, id]
+}
+
+const copyGeneratedCompose = async () => {
+  try {
+    await navigator.clipboard.writeText(generatedCompose.value)
+    copiedCompose.value = true
+    setTimeout(() => { copiedCompose.value = false }, 1500)
+  } catch (e) {
+    copiedCompose.value = false
+  }
+}
+
 watch(selectedTrack, (value) => localStorage.setItem('dockermaster-track', value))
 watch(checkedItems, (value) => localStorage.setItem('dockermaster-checklist', JSON.stringify(value)))
+watch(projectName, (value) => localStorage.setItem('dockermaster-project-name', value))
+watch(packageManager, (value) => localStorage.setItem('dockermaster-package-manager', value))
+watch(backendPort, (value) => localStorage.setItem('dockermaster-backend-port', String(value || 5000)))
+watch(selectedServices, (value) => localStorage.setItem('dockermaster-stack-services', JSON.stringify(value)))
 
 const cards = [
   {
@@ -703,8 +910,152 @@ const techStack = [
   accent-color: var(--green);
 }
 
+/* Starter Kit Builder */
+.builder-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.8fr) minmax(0, 1.2fr);
+  gap: 16px;
+  align-items: start;
+  margin-top: 24px;
+}
+.builder-panel {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.builder-field {
+  display: grid;
+  gap: 7px;
+  margin-top: 16px;
+}
+.builder-field.split {
+  grid-template-columns: 1fr 120px;
+  gap: 10px;
+}
+.builder-field.split > div {
+  display: grid;
+  gap: 7px;
+}
+.builder-field label {
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+.builder-field input,
+.builder-field select {
+  min-height: 40px;
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  outline: none;
+  padding: 9px 11px;
+}
+.builder-field input:focus,
+.builder-field select:focus {
+  border-color: var(--accent);
+}
+.service-picker {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 16px;
+}
+.service-chip {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 2px 8px;
+  align-items: center;
+  min-height: 62px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text2);
+  cursor: pointer;
+  padding: 10px;
+  text-align: left;
+  transition: border-color 0.18s, background 0.18s, transform 0.18s;
+}
+.service-chip:hover {
+  border-color: var(--border2);
+  transform: translateY(-1px);
+}
+.service-chip.active {
+  background: rgba(32,199,232,0.1);
+  border-color: rgba(32,199,232,0.38);
+}
+.service-chip span {
+  grid-row: span 2;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.service-chip strong {
+  font-size: 13px;
+  line-height: 1.1;
+}
+.service-chip small {
+  color: var(--text3);
+  font-size: 11px;
+}
+.builder-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 16px;
+}
+.builder-summary div {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+  min-width: 0;
+}
+.builder-summary span {
+  display: block;
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  margin-bottom: 3px;
+}
+.builder-summary strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.builder-preview .code-block {
+  margin: 0;
+}
+.builder-preview .code-body {
+  max-height: 560px;
+}
+.copy-code-btn {
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 5px 10px;
+}
+.copy-code-btn:hover {
+  color: var(--accent);
+  border-color: rgba(32,199,232,0.38);
+}
+
 @media (max-width: 700px) {
-  .dashboard-grid { grid-template-columns: 1fr; }
+  .dashboard-grid,
+  .builder-grid { grid-template-columns: 1fr; }
   .panel-top { align-items: flex-start; flex-direction: column; }
   .track-item { grid-template-columns: 38px 1fr; }
   .track-item small { grid-column: 2; }
@@ -727,6 +1078,9 @@ const techStack = [
   .card-body { flex-basis: calc(100% - 64px); }
   .card-desc { white-space: normal; }
   .card-arrow { margin-left: auto; }
+  .builder-field.split,
+  .service-picker,
+  .builder-summary { grid-template-columns: 1fr; }
   .pv-side { padding: 20px 18px; }
   .step { gap: 14px; padding-bottom: 28px; }
   .step-num { width: 34px; height: 34px; min-width: 34px; }

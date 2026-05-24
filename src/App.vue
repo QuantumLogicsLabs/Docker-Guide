@@ -83,6 +83,9 @@
               <strong>{{ item.label }}</strong>
               <small>{{ item.hint }}</small>
             </router-link>
+            <div v-if="filteredPalette.length === 0" class="palette-empty">
+              No matching chapter found
+            </div>
           </div>
         </div>
       </div>
@@ -93,7 +96,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, provide, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, provide, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 const menuOpen = ref(false)
@@ -161,11 +164,23 @@ watch(paletteOpen, async (open) => {
   }
 })
 
-window.addEventListener('keydown', (event) => {
+const handleGlobalKeydown = (event) => {
   if (event.key === '/' && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
     event.preventDefault()
     paletteOpen.value = true
   }
+  if (event.key === 'Escape') {
+    paletteOpen.value = false
+    menuOpen.value = false
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleGlobalKeydown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleGlobalKeydown)
 })
 </script>
 
@@ -312,6 +327,7 @@ kbd { border: 1px solid var(--border2); background: var(--bg2); color: var(--tex
 .palette-item strong { color: var(--text); }
 .palette-item small { grid-column: 2; color: var(--text3); }
 .palette-kicker { color: var(--accent); font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; }
+.palette-empty { color: var(--text3); padding: 22px 14px; text-align: center; font-size: 13px; }
 
 .fade-enter-active, .fade-leave-active { transition: opacity 0.2s, transform 0.2s; }
 .fade-enter-from { opacity: 0; transform: translateY(8px); }
